@@ -14,6 +14,7 @@ import (
 	"github.com/Th0rgal/open-ralph-wiggum/internal/state"
 )
 
+// projectRoot returns the repository root directory for integration tests.
 func projectRoot(t *testing.T) string {
 	t.Helper()
 	_, file, _, ok := runtime.Caller(0)
@@ -23,12 +24,14 @@ func projectRoot(t *testing.T) string {
 	return filepath.Dir(filepath.Dir(file))
 }
 
+// cleanupStateFiles removes persisted loop state files used by SIGINT tests.
 func cleanupStateFiles(t *testing.T, root string) {
 	t.Helper()
 	_ = os.Remove(filepath.Join(root, ".ralph", "ralph-loop.state.json"))
 	_ = os.Remove(filepath.Join(root, ".ralph", "ralph-questions.json"))
 }
 
+// TestSIGINTCleanup verifies SIGINT handling stops runs cleanly and clears persisted state.
 func TestSIGINTCleanup(t *testing.T) {
 	root := projectRoot(t)
 	statePath := filepath.Join(root, ".ralph", "ralph-loop.state.json")

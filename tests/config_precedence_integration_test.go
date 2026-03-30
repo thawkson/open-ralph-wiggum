@@ -7,6 +7,7 @@ import (
 	"testing"
 )
 
+// TestPromptTemplatePrecedenceIntegration verifies prompt templates override inline prompt content.
 func TestPromptTemplatePrecedenceIntegration(t *testing.T) {
 	wd := t.TempDir()
 	templatePath := filepath.Join(wd, "template.txt")

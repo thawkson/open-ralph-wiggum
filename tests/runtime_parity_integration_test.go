@@ -9,6 +9,7 @@ import (
 	"github.com/Th0rgal/open-ralph-wiggum/internal/state"
 )
 
+// TestNoStreamPrintsBufferedOutput verifies no-stream mode prints buffered agent output at iteration end.
 func TestNoStreamPrintsBufferedOutput(t *testing.T) {
 	wd := t.TempDir()
 	output, code := runRalphBinary(t, wd, "echo HELLO_BUFFERED", "--agent", "mock", "--no-stream", "--max-iterations", "1", "--completion-promise", "DONE")
@@ -20,6 +21,7 @@ func TestNoStreamPrintsBufferedOutput(t *testing.T) {
 	}
 }
 
+// TestTasksModeCreatesTasksFile verifies tasks mode auto-creates the task file with seed content.
 func TestTasksModeCreatesTasksFile(t *testing.T) {
 	wd := t.TempDir()
 	output, code := runRalphBinary(t, wd,
@@ -45,6 +47,7 @@ func TestTasksModeCreatesTasksFile(t *testing.T) {
 	}
 }
 
+// TestContextClearedAfterConsumed verifies context files are removed after one consuming iteration.
 func TestContextClearedAfterConsumed(t *testing.T) {
 	wd := t.TempDir()
 	if err := state.EnsureDir(wd); err != nil {
@@ -64,6 +67,7 @@ func TestContextClearedAfterConsumed(t *testing.T) {
 	}
 }
 
+// TestMaxIterationsClearsPendingQuestions verifies max-iteration termination removes pending question state.
 func TestMaxIterationsClearsPendingQuestions(t *testing.T) {
 	wd := t.TempDir()
 	if err := state.EnsureDir(wd); err != nil {
@@ -86,6 +90,7 @@ func TestMaxIterationsClearsPendingQuestions(t *testing.T) {
 	}
 }
 
+// TestStreamingHandlesVeryLongOutputLine verifies very long streamed lines do not prevent completion detection.
 func TestStreamingHandlesVeryLongOutputLine(t *testing.T) {
 	wd := t.TempDir()
 	output, code := runRalphBinary(

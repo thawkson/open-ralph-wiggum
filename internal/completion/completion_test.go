@@ -2,6 +2,7 @@ package completion
 
 import "testing"
 
+// TestCheckTerminalPromise verifies completion detection only when the final non-empty line matches the promise tag.
 func TestCheckTerminalPromise(t *testing.T) {
 	t.Run("detects completion when promise tag is the final non-empty line", func(t *testing.T) {
 		output := "Implemented changes.\nAll tests pass.\n<promise>LEGION_EPIC_DONE_2026_02_17</promise>\n"
@@ -32,6 +33,7 @@ func TestCheckTerminalPromise(t *testing.T) {
 	})
 }
 
+// TestGetLastNonEmptyLine verifies the last non-empty output line is returned.
 func TestGetLastNonEmptyLine(t *testing.T) {
 	output := "line 1\nline 2\n\n"
 	got := GetLastNonEmptyLine(output)
@@ -40,6 +42,7 @@ func TestGetLastNonEmptyLine(t *testing.T) {
 	}
 }
 
+// TestTasksMarkdownAllComplete verifies task markdown completion requires at least one task and all tasks checked.
 func TestTasksMarkdownAllComplete(t *testing.T) {
 	t.Run("requires at least one task", func(t *testing.T) {
 		if TasksMarkdownAllComplete("# Ralph Tasks\n\nNo tasks yet.") {

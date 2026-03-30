@@ -9,6 +9,7 @@ import (
 	"github.com/Th0rgal/open-ralph-wiggum/internal/state"
 )
 
+// TestRotationResumeProgression verifies resumed runs continue through configured rotation entries.
 func TestRotationResumeProgression(t *testing.T) {
 	wd := t.TempDir()
 	configPath := filepath.Join(wd, "agents.json")

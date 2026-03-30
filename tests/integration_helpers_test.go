@@ -15,6 +15,7 @@ var (
 	binaryError error
 )
 
+// builtRalphBinary builds the CLI binary once and returns its cached path.
 func builtRalphBinary(t *testing.T) string {
 	t.Helper()
 	root := projectRoot(t)
@@ -41,6 +42,7 @@ func builtRalphBinary(t *testing.T) string {
 	return binaryPath
 }
 
+// runRalphBinary executes the test binary and returns combined output with exit code.
 func runRalphBinary(t *testing.T, workingDir string, args ...string) (string, int) {
 	t.Helper()
 	bin := builtRalphBinary(t)

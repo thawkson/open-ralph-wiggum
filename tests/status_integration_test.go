@@ -10,6 +10,7 @@ import (
 	"github.com/Th0rgal/open-ralph-wiggum/internal/state"
 )
 
+// TestStatusIntegrationShowsRotationAndStrugglePreview verifies status output includes rotation details, task progress, and struggle indicators.
 func TestStatusIntegrationShowsRotationAndStrugglePreview(t *testing.T) {
 	wd := t.TempDir()
 	st := state.RalphState{

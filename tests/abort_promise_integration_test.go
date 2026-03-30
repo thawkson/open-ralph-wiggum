@@ -8,6 +8,7 @@ import (
 	"github.com/Th0rgal/open-ralph-wiggum/internal/state"
 )
 
+// TestAbortPromiseIntegrationNormalMode verifies abort promises stop normal mode with a non-zero exit.
 func TestAbortPromiseIntegrationNormalMode(t *testing.T) {
 	wd := t.TempDir()
 	output, code := runRalphBinary(t, wd, "echo '<promise>STOP</promise>'", "--agent", "mock", "--abort-promise", "STOP", "--max-iterations", "3")
@@ -19,6 +20,7 @@ func TestAbortPromiseIntegrationNormalMode(t *testing.T) {
 	}
 }
 
+// TestAbortPromiseIntegrationTasksMode verifies abort promises stop tasks mode with a non-zero exit.
 func TestAbortPromiseIntegrationTasksMode(t *testing.T) {
 	wd := t.TempDir()
 	if err := state.EnsureDir(wd); err != nil {

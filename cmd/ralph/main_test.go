@@ -14,6 +14,7 @@ import (
 	"github.com/Th0rgal/open-ralph-wiggum/internal/state"
 )
 
+// TestParseCLIArgsSupportsFlagsAfterPrompt verifies that CLI parsing accepts flags that appear after prompt text.
 func TestParseCLIArgsSupportsFlagsAfterPrompt(t *testing.T) {
 	cfg, err := parseCLIArgs([]string{"Build API", "--agent", "codex", "--max-iterations", "7", "--task-promise", "NEXT"})
 	if err != nil {
@@ -33,6 +34,7 @@ func TestParseCLIArgsSupportsFlagsAfterPrompt(t *testing.T) {
 	}
 }
 
+// TestParseCLIArgsUnknownFlag verifies unknown options return a parse error.
 func TestParseCLIArgsUnknownFlag(t *testing.T) {
 	_, err := parseCLIArgs([]string{"--nope"})
 	if err == nil {
@@ -40,6 +42,7 @@ func TestParseCLIArgsUnknownFlag(t *testing.T) {
 	}
 }
 
+// TestParseCLIArgsPassthroughFlags verifies arguments after -- are forwarded as agent flags.
 func TestParseCLIArgsPassthroughFlags(t *testing.T) {
 	cfg, err := parseCLIArgs([]string{"task", "--", "--json", "--trace"})
 	if err != nil {
@@ -50,6 +53,7 @@ func TestParseCLIArgsPassthroughFlags(t *testing.T) {
 	}
 }
 
+// TestParseCLIArgsRotationAndConfigFlags verifies rotation, config, and prompt-template flags are parsed correctly.
 func TestParseCLIArgsRotationAndConfigFlags(t *testing.T) {
 	cfg, err := parseCLIArgs([]string{"task", "--rotation", "opencode:model-a,codex:model-b", "--config", "/tmp/agents.json", "--prompt-template", "./template.txt"})
 	if err != nil {
@@ -66,6 +70,7 @@ func TestParseCLIArgsRotationAndConfigFlags(t *testing.T) {
 	}
 }
 
+// TestParseRotationInput verifies rotation input parsing and validation for malformed or unknown entries.
 func TestParseRotationInput(t *testing.T) {
 	agents := map[string]agent.Definition{
 		"opencode": {Type: "opencode"},
@@ -88,6 +93,7 @@ func TestParseRotationInput(t *testing.T) {
 	}
 }
 
+// TestPrintStatusShowsRotationAndErrorPreview verifies status output includes rotation position, task progress, and repeated-error previews.
 func TestPrintStatusShowsRotationAndErrorPreview(t *testing.T) {
 	tmp := t.TempDir()
 	st := state.RalphState{
@@ -134,6 +140,7 @@ func TestPrintStatusShowsRotationAndErrorPreview(t *testing.T) {
 	mustContain(t, output, `error 3x: "TypeError: boom in parser"`)
 }
 
+// TestRunWarnsNoPluginsForClaudeCode verifies --no-plugins emits the expected warning for Claude Code.
 func TestRunWarnsNoPluginsForClaudeCode(t *testing.T) {
 	tmp := t.TempDir()
 	configPath := filepath.Join(tmp, "agents.json")
@@ -154,6 +161,7 @@ func TestRunWarnsNoPluginsForClaudeCode(t *testing.T) {
 	mustContain(t, output, "Warning: --no-plugins has no effect with Claude Code agent")
 }
 
+// withCapturedOutput captures combined stdout and stderr while fn executes.
 func withCapturedOutput(t *testing.T, fn func()) string {
 	t.Helper()
 	origStdout := os.Stdout
@@ -179,6 +187,7 @@ func withCapturedOutput(t *testing.T, fn func()) string {
 	return <-outCh
 }
 
+// withWorkingDir runs fn in dir and restores the original working directory.
 func withWorkingDir(t *testing.T, dir string, fn func()) {
 	t.Helper()
 	old, err := os.Getwd()
@@ -192,6 +201,7 @@ func withWorkingDir(t *testing.T, dir string, fn func()) {
 	fn()
 }
 
+// mustContain fails the test when output does not include want.
 func mustContain(t *testing.T, output string, want string) {
 	t.Helper()
 	if !strings.Contains(output, want) {

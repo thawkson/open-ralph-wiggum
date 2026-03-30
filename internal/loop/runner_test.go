@@ -16,6 +16,7 @@ import (
 	"github.com/Th0rgal/open-ralph-wiggum/internal/state"
 )
 
+// TestParseRotationEntry verifies rotation entries parse into agent and model values.
 func TestParseRotationEntry(t *testing.T) {
 	agentName, model, err := parseRotationEntry("opencode:model-a")
 	if err != nil {
@@ -30,6 +31,7 @@ func TestParseRotationEntry(t *testing.T) {
 	}
 }
 
+// TestSelectedAgentModel verifies rotation index selection resolves to the expected agent and model.
 func TestSelectedAgentModel(t *testing.T) {
 	idx := 1
 	st := &state.RalphState{
@@ -47,6 +49,7 @@ func TestSelectedAgentModel(t *testing.T) {
 	}
 }
 
+// TestRenderPromptTemplate verifies prompt template placeholders are substituted from state values.
 func TestRenderPromptTemplate(t *testing.T) {
 	tmp := t.TempDir()
 	templatePath := filepath.Join(tmp, "template.txt")
@@ -76,6 +79,7 @@ func TestRenderPromptTemplate(t *testing.T) {
 	}
 }
 
+// TestResolveAgentSpecAllowAllAndStreamArgs verifies allow-all and streaming flags are added per agent template.
 func TestResolveAgentSpecAllowAllAndStreamArgs(t *testing.T) {
 	claudeDef := agent.Definition{Type: "claude-code", Command: "claude", ArgsTemplate: "claude-code"}
 	claude, err := resolveAgentSpec(claudeDef, "prompt", "m", []string{"--x"}, true, true)
@@ -106,6 +110,7 @@ func TestResolveAgentSpecAllowAllAndStreamArgs(t *testing.T) {
 	}
 }
 
+// TestEnsureTasksFile verifies task file creation is correct and idempotent.
 func TestEnsureTasksFile(t *testing.T) {
 	tmp := t.TempDir()
 	path, created, err := ensureTasksFile(tmp)
@@ -132,6 +137,7 @@ func TestEnsureTasksFile(t *testing.T) {
 	}
 }
 
+// TestLoadAndClearContext verifies context can be loaded and then cleared from disk.
 func TestLoadAndClearContext(t *testing.T) {
 	tmp := t.TempDir()
 	if err := state.EnsureDir(tmp); err != nil {
@@ -151,6 +157,7 @@ func TestLoadAndClearContext(t *testing.T) {
 	}
 }
 
+// TestPendingQuestionQueue verifies pending questions are queued and dequeued in FIFO order.
 func TestPendingQuestionQueue(t *testing.T) {
 	tmp := t.TempDir()
 	if err := savePendingQuestion(tmp, "first"); err != nil {
@@ -185,6 +192,7 @@ func TestPendingQuestionQueue(t *testing.T) {
 	}
 }
 
+// TestParseToolFromLine verifies default tool parsing across supported output formats.
 func TestParseToolFromLine(t *testing.T) {
 	cases := map[string]string{
 		"Tool: question":                "question",
@@ -200,6 +208,7 @@ func TestParseToolFromLine(t *testing.T) {
 	}
 }
 
+// TestParseToolFromLineWithPatternClaudeCode verifies Claude-specific parsing only captures tool_use entries.
 func TestParseToolFromLineWithPatternClaudeCode(t *testing.T) {
 	line := `{"type":"tool_use","name":"ReadFile"}`
 	got := parseToolFromLineWithPattern(line, "claude-code")
@@ -214,6 +223,7 @@ func TestParseToolFromLineWithPatternClaudeCode(t *testing.T) {
 	}
 }
 
+// TestDetectPlaceholderAndModelErrors verifies placeholder plugin and model-not-found detection heuristics.
 func TestDetectPlaceholderAndModelErrors(t *testing.T) {
 	if !detectPlaceholderPluginError("ralph-wiggum is not yet ready for use. This is a placeholder package.") {
 		t.Fatal("expected placeholder plugin detection")
@@ -226,6 +236,7 @@ func TestDetectPlaceholderAndModelErrors(t *testing.T) {
 	}
 }
 
+// TestEnsureRalphConfig verifies generated OpenCode config filters plugins and applies allow-all permissions.
 func TestEnsureRalphConfig(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("HOME", filepath.Join(tmp, "home"))
@@ -265,6 +276,7 @@ func TestEnsureRalphConfig(t *testing.T) {
 	}
 }
 
+// TestGetModifiedFilesSinceSnapshot verifies snapshot diffing reports changed, added, and removed files.
 func TestGetModifiedFilesSinceSnapshot(t *testing.T) {
 	before := fileSnapshot{files: map[string]string{
 		"a.txt": "hash-a1",
@@ -284,6 +296,7 @@ func TestGetModifiedFilesSinceSnapshot(t *testing.T) {
 	}
 }
 
+// TestStreamPipeLongLineBeyondScannerLimit verifies streamPipe handles very long newline-terminated lines.
 func TestStreamPipeLongLineBeyondScannerLimit(t *testing.T) {
 	line := strings.Repeat("A", 128*1024)
 	capture, output, lastActivity := runStreamPipeForTest(line+"\n", true, true, "default", nil)
@@ -299,6 +312,7 @@ func TestStreamPipeLongLineBeyondScannerLimit(t *testing.T) {
 	}
 }
 
+// TestStreamPipeFlushesPartialLineAtEOF verifies streamPipe flushes partial lines on EOF.
 func TestStreamPipeFlushesPartialLineAtEOF(t *testing.T) {
 	line := strings.Repeat("B", 96*1024)
 	capture, output, _ := runStreamPipeForTest(line, true, true, "default", nil)
@@ -311,6 +325,7 @@ func TestStreamPipeFlushesPartialLineAtEOF(t *testing.T) {
 	}
 }
 
+// TestStreamPipeSuppressesToolLinesInCompactModeForLongLines verifies compact mode counts tool lines without streaming them.
 func TestStreamPipeSuppressesToolLinesInCompactModeForLongLines(t *testing.T) {
 	line := "Tool: edit_file " + strings.Repeat("X", 80*1024)
 	tools := &toolSummaryState{
@@ -334,6 +349,7 @@ func TestStreamPipeSuppressesToolLinesInCompactModeForLongLines(t *testing.T) {
 	}
 }
 
+// TestStreamPipeCapturesInNoStreamMode verifies no-stream mode captures output without writing it to the stream.
 func TestStreamPipeCapturesInNoStreamMode(t *testing.T) {
 	line := strings.Repeat("C", 72*1024)
 	capture, output, _ := runStreamPipeForTest(line+"\n", false, false, "default", nil)
@@ -346,6 +362,7 @@ func TestStreamPipeCapturesInNoStreamMode(t *testing.T) {
 	}
 }
 
+// runStreamPipeForTest runs streamPipe with fixtures and returns captured output state.
 func runStreamPipeForTest(input string, stream bool, verboseTools bool, parsePattern string, tools *toolSummaryState) (string, string, int64) {
 	var capture bytes.Buffer
 	var output bytes.Buffer
@@ -357,6 +374,7 @@ func runStreamPipeForTest(input string, stream bool, verboseTools bool, parsePat
 	return capture.String(), output.String(), activity.Load()
 }
 
+// contains reports whether target appears in values.
 func contains(values []string, target string) bool {
 	for _, value := range values {
 		if value == target {
@@ -366,6 +384,7 @@ func contains(values []string, target string) bool {
 	return false
 }
 
+// TestFindCurrentTask verifies the first in-progress task is selected.
 func TestFindCurrentTask(t *testing.T) {
 	tasks := []loopTask{
 		{text: "First", status: "complete"},
@@ -387,6 +406,7 @@ func TestFindCurrentTask(t *testing.T) {
 	}
 }
 
+// TestFindNextTask verifies the first todo task is selected.
 func TestFindNextTask(t *testing.T) {
 	tasks := []loopTask{
 		{text: "Done", status: "complete"},
@@ -408,6 +428,7 @@ func TestFindNextTask(t *testing.T) {
 	}
 }
 
+// TestAllTasksComplete verifies completion checks include both tasks and subtasks.
 func TestAllTasksComplete(t *testing.T) {
 	if allTasksComplete(nil) {
 		t.Fatal("expected false for empty list")
@@ -444,6 +465,7 @@ func TestAllTasksComplete(t *testing.T) {
 	}
 }
 
+// TestParseLoopTasks verifies markdown task parsing produces expected task and subtask statuses.
 func TestParseLoopTasks(t *testing.T) {
 	content := "# Tasks\n- [x] Done task\n- [/] In progress\n  - [ ] Sub todo\n  - [x] Sub done\n- [ ] Todo task\n"
 	tasks := parseLoopTasks(content)
@@ -464,6 +486,7 @@ func TestParseLoopTasks(t *testing.T) {
 	}
 }
 
+// TestExtractClaudeStreamDisplayLines verifies Claude stream JSON is converted into displayable lines.
 func TestExtractClaudeStreamDisplayLines(t *testing.T) {
 	// Non-JSON line returns as-is
 	plain := extractClaudeStreamDisplayLines("Hello world")
@@ -519,6 +542,7 @@ func TestExtractClaudeStreamDisplayLines(t *testing.T) {
 	}
 }
 
+// TestBuildLoopPromptDefaultMode verifies default-mode prompts include task instructions and iteration metadata.
 func TestBuildLoopPromptDefaultMode(t *testing.T) {
 	tmp := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(tmp, ".ralph"), 0o755); err != nil {
@@ -555,6 +579,7 @@ func TestBuildLoopPromptDefaultMode(t *testing.T) {
 	}
 }
 
+// TestBuildLoopPromptTasksMode verifies tasks-mode prompts include workflow guidance and promise rules.
 func TestBuildLoopPromptTasksMode(t *testing.T) {
 	tmp := t.TempDir()
 	ralphDir := filepath.Join(tmp, ".ralph")
@@ -596,6 +621,7 @@ func TestBuildLoopPromptTasksMode(t *testing.T) {
 	}
 }
 
+// TestBuildLoopPromptWithContext verifies prompts include user-provided context when present.
 func TestBuildLoopPromptWithContext(t *testing.T) {
 	tmp := t.TempDir()
 	ralphDir := filepath.Join(tmp, ".ralph")
@@ -621,6 +647,7 @@ func TestBuildLoopPromptWithContext(t *testing.T) {
 	}
 }
 
+// TestStreamPipeClaudeStreamParsing verifies Claude stream text is rendered while raw JSON remains captured.
 func TestStreamPipeClaudeStreamParsing(t *testing.T) {
 	input := `{"type":"assistant","delta":{"text":"Hello from Claude"}}` + "\n" +
 		"plain line\n" +
