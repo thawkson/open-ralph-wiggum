@@ -1,19 +1,19 @@
-# Uninstall script for Ralph Wiggum CLI (Windows)
+# Uninstall script for Ralph Wiggum CLI (Windows, Go standalone binary)
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "Uninstalling Ralph Wiggum CLI..."
 
-if (Get-Command bun -ErrorAction SilentlyContinue) {
-  Write-Host "Unlinking ralph command (bun)..."
-  bun unlink @th0rgal/ralph-wiggum 2>$null
-}
+$installDir = if ($env:RALPH_INSTALL_DIR) { $env:RALPH_INSTALL_DIR } else { Join-Path $HOME "bin" }
+$binaryPath = Join-Path $installDir "ralph.exe"
 
-if (Get-Command npm -ErrorAction SilentlyContinue) {
-  Write-Host "Removing global package (npm)..."
-  npm uninstall -g @th0rgal/ralph-wiggum 2>$null
+if (Test-Path $binaryPath) {
+  Remove-Item $binaryPath -Force
+  Write-Host "Removed: $binaryPath"
+} else {
+  Write-Host "No binary found at: $binaryPath"
 }
 
 Write-Host ""
 Write-Host "Uninstall complete!"
-Write-Host "You may also want to remove the cloned repository."
+Write-Host "You may also want to remove the cloned repository and .ralph state files."

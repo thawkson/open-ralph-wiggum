@@ -1,20 +1,20 @@
 #!/bin/bash
-# Uninstall script for Ralph Wiggum CLI
+# Uninstall script for Ralph Wiggum CLI (Go standalone binary)
 
-set -e
+set -euo pipefail
 
 echo "Uninstalling Ralph Wiggum CLI..."
 
-if command -v bun &> /dev/null; then
-  echo "Unlinking ralph command (bun)..."
-  bun unlink @th0rgal/ralph-wiggum 2>/dev/null || true
-fi
+INSTALL_DIR="${RALPH_INSTALL_DIR:-$HOME/.local/bin}"
+BINARY_PATH="$INSTALL_DIR/ralph"
 
-if command -v npm &> /dev/null; then
-  echo "Removing global package (npm)..."
-  npm uninstall -g @th0rgal/ralph-wiggum 2>/dev/null || true
+if [ -f "$BINARY_PATH" ]; then
+  rm -f "$BINARY_PATH"
+  echo "Removed: $BINARY_PATH"
+else
+  echo "No binary found at: $BINARY_PATH"
 fi
 
 echo ""
 echo "Uninstall complete!"
-echo "You may also want to remove the cloned repository."
+echo "You may also want to remove the cloned repository and .ralph state files."

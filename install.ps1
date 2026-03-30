@@ -1,51 +1,46 @@
-# Install script for Ralph Wiggum CLI (Windows)
+# Install script for Ralph Wiggum CLI (Windows, Go standalone binary)
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "Installing Ralph Wiggum CLI..."
+Write-Host "Installing Ralph Wiggum CLI (Go standalone)..."
 
-# Check for Bun
-if (-not (Get-Command bun -ErrorAction SilentlyContinue)) {
-  Write-Error "Bun is required but not installed. Install Bun: https://bun.sh"
+# Check for Go
+if (-not (Get-Command go -ErrorAction SilentlyContinue)) {
+  Write-Error "Go is required but not installed. Install Go: https://go.dev/doc/install"
   exit 1
 }
 
-# Check for agent CLI (OpenCode, Claude Code, Codex, or Copilot CLI)
+# Warn if no agent CLI is currently installed
 $hasOpenCode = Get-Command opencode -ErrorAction SilentlyContinue
 $hasClaude = Get-Command claude -ErrorAction SilentlyContinue
 $hasCodex = Get-Command codex -ErrorAction SilentlyContinue
 $hasCopilot = Get-Command copilot -ErrorAction SilentlyContinue
 if (-not $hasOpenCode -and -not $hasClaude -and -not $hasCodex -and -not $hasCopilot) {
-  Write-Error "OpenCode, Claude Code, Codex, or Copilot CLI is required but not installed. Install OpenCode: npm install -g opencode-ai. Install Claude Code: https://claude.ai/code. Install Codex: https://developers.openai.com/codex/. Install Copilot CLI: npm install -g @github/copilot"
-  exit 1
-}
-
-if (-not $hasOpenCode) {
-  if ($hasClaude) {
-    Write-Warning "OpenCode not found. Default agent is OpenCode. Use --agent claude-code or install OpenCode."
-  } elseif ($hasCodex) {
-    Write-Warning "OpenCode not found. Default agent is OpenCode. Use --agent codex or install OpenCode."
-  } elseif ($hasCopilot) {
-    Write-Warning "OpenCode not found. Default agent is OpenCode. Use --agent copilot or install OpenCode."
-  }
+  Write-Warning "No supported agent CLI found yet (opencode, claude, codex, copilot)."
+  Write-Warning "You can install one later and then run: ralph --help"
 }
 
 # Get script directory
 $scriptDir = $PSScriptRoot
+$installDir = if ($env:RALPH_INSTALL_DIR) { $env:RALPH_INSTALL_DIR } else { Join-Path $HOME "bin" }
+$binaryPath = Join-Path $installDir "ralph.exe"
 
-# Install dependencies
-Write-Host "Installing dependencies..."
+if (-not (Test-Path $installDir)) {
+  New-Item -ItemType Directory -Path $installDir | Out-Null
+}
+
+# Build binary
+Write-Host "Building ralph binary..."
 Push-Location $scriptDir
-bun install
-
-# Link the package (makes 'ralph' command available)
-Write-Host "Linking ralph command..."
-bun link
+go build -o $binaryPath ./cmd/ralph
 
 Pop-Location
 
 Write-Host ""
 Write-Host "Installation complete!"
+Write-Host "Binary installed to: $binaryPath"
+Write-Host ""
+Write-Host "If '$installDir' is not on PATH, add it in your shell profile."
 Write-Host ""
 Write-Host "Usage:"
 Write-Host ""

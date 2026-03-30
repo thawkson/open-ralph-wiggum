@@ -1,39 +1,26 @@
-<p align="center">
-  <h1 align="center">Open Ralph Wiggum</h1>
-  <h3 align="center">Autonomous Agentic Loop for Claude Code, Codex, Copilot CLI & OpenCode</h3>
-</p>
+# Open Ralph Wiggum
 
-<p align="center">
-  <img src="screenshot.webp" alt="Open Ralph Wiggum - Iterative AI coding loop for Claude Code and Codex" />
-</p>
+### Autonomous Agentic Loop for Claude Code, Codex, Copilot CLI & OpenCode
 
-<p align="center">
-  <em>Works with <b>Claude Code</b>, <b>OpenAI Codex</b>, <b>Copilot CLI</b>, and <b>OpenCode</b> — switch agents with <code>--agent</code>.</em><br>
-  <em>Based on the <a href="https://ghuntley.com/ralph/">Ralph Wiggum technique</a> by Geoffrey Huntley</em>
-</p>
+![Open Ralph Wiggum - Iterative AI coding loop for Claude Code and Codex](screenshot.webp)
 
-<p align="center">
-  <a href="https://github.com/Th0rgal/open-ralph-wiggum/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
-  <a href="https://github.com/Th0rgal/open-ralph-wiggum"><img src="https://img.shields.io/badge/built%20with-Bun%20%2B%20TypeScript-f472b6.svg" alt="Built with Bun + TypeScript"></a>
-  <a href="https://github.com/Th0rgal/open-ralph-wiggum/releases"><img src="https://img.shields.io/github/v/release/Th0rgal/ralph-wiggum?include_prereleases" alt="Release"></a>
-</p>
+*Works with **Claude Code**, **OpenAI Codex**, **Copilot CLI**, and **OpenCode** — switch agents with `--agent`.*
+*Based on the [Ralph Wiggum technique](https://ghuntley.com/ralph/) by Geoffrey Huntley*
 
-<p align="center">
-  <a href="#supported-agents">Supported Agents</a> •
-  <a href="#what-is-open-ralph-wiggum">What is Ralph?</a> •
-  <a href="#installation">Installation</a> •
-  <a href="#quick-start">Quick Start</a> •
-  <a href="#commands">Commands</a>
-</p>
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Th0rgal/open-ralph-wiggum/blob/master/LICENSE)
+[![Built with Go standalone](https://img.shields.io/badge/built%20with-Go%20standalone-00ADD8.svg)](https://github.com/Th0rgal/open-ralph-wiggum)
+[![Release](https://img.shields.io/github/v/release/Th0rgal/ralph-wiggum?include_prereleases)](https://github.com/Th0rgal/open-ralph-wiggum/releases)
 
-<p align="center">
-  <strong>Tired of agents breaking your local environment?</strong><br>
-  🏝️ <a href="https://github.com/Th0rgal/sandboxed.sh">sandboxed.sh</a> gives each task an isolated Linux workspace. Self-hosted. Git-backed.
-</p>
+[Supported Agents](#supported-agents) •
+[What is Ralph?](#what-is-open-ralph-wiggum) •
+[Installation](#installation) •
+[Quick Start](#quick-start) •
+[Commands](#commands)
 
-<p align="center">
-  💬 <strong>Join the community:</strong> <a href="https://relens.ai/community">relens.ai/community</a>
-</p>
+**Tired of agents breaking your local environment?**
+🏝️ [sandboxed.sh](https://github.com/Th0rgal/sandboxed.sh) gives each task an isolated Linux workspace. Self-hosted. Git-backed.
+
+💬 **Join the community:** [relens.ai/community](https://relens.ai/community)
 
 ---
 
@@ -111,26 +98,14 @@ Switch between AI coding agents without changing your workflow:
 ## Installation
 
 **Prerequisites:**
-- [Bun](https://bun.sh) runtime
+- [Go](https://go.dev/doc/install) (for building from source)
 - At least one AI coding agent CLI:
   - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) — Anthropic's Claude Code CLI
   - [Codex](https://github.com/openai/codex) — OpenAI's Codex CLI
   - [Copilot CLI](https://github.com/github/copilot-cli) — GitHub's Copilot CLI
   - [OpenCode](https://opencode.ai) — Open-source AI coding assistant
 
-### npm (recommended)
-
-```bash
-npm install -g @th0rgal/ralph-wiggum
-```
-
-### Bun
-
-```bash
-bun add -g @th0rgal/ralph-wiggum
-```
-
-### From source
+### From source (standalone Go binary)
 
 ```bash
 git clone https://github.com/Th0rgal/open-ralph-wiggum
@@ -145,6 +120,46 @@ cd open-ralph-wiggum
 ```
 
 This installs the `ralph` CLI command globally.
+
+By default, the install scripts place the binary in `$HOME/.local/bin` (macOS/Linux) or `$HOME/bin` (Windows).
+Set `RALPH_INSTALL_DIR` to override the destination.
+
+### Build cross-platform binaries
+
+Use the root `Makefile` to build release artifacts for Linux, macOS, and Windows on both amd64 and arm64:
+
+```bash
+make build-all
+```
+
+Artifacts are written to `dist/` with deterministic names:
+
+- `ralph-linux-amd64`
+- `ralph-linux-arm64`
+- `ralph-darwin-amd64`
+- `ralph-darwin-arm64`
+- `ralph-windows-amd64.exe`
+- `ralph-windows-arm64.exe`
+
+You can also build only your local platform:
+
+```bash
+make build
+```
+
+Generate SHA-256 checksums for built artifacts:
+
+```bash
+make checksums
+```
+
+Or run the full release flow (clean, build-all, checksums):
+
+```bash
+make release
+```
+
+Checksums are written to `dist/checksums.txt`.
 
 ## Quick Start
 
