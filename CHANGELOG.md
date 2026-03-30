@@ -53,3 +53,6 @@ Test suite:
 - Integration tests: SIGINT cleanup, abort promise, config precedence,
   rotation resume, status command, runtime parity with mock agents
 - All tests run via standard `go test ./...`
+
+Updated Agent Defaults to copilot vs opencode
+and --no-allow-all is defaulted instead of auto allowing all tool

@@ -36,6 +36,7 @@ type RalphHistory struct {
 	StruggleIndicators StruggleIndicators `json:"struggleIndicators"`
 }
 
+// Empty returns a new history value with initialized default fields.
 func Empty() RalphHistory {
 	return RalphHistory{
 		Iterations:      []IterationRecord{},
@@ -48,6 +49,7 @@ func Empty() RalphHistory {
 	}
 }
 
+// Load reads history from disk and returns defaults when the file is missing.
 func Load(cwd string) (RalphHistory, error) {
 	path := state.HistoryPath(cwd)
 	payload, err := os.ReadFile(path)
@@ -67,6 +69,7 @@ func Load(cwd string) (RalphHistory, error) {
 	return h, nil
 }
 
+// Save persists history atomically in the workspace state directory.
 func Save(cwd string, h RalphHistory) error {
 	if err := state.EnsureDir(cwd); err != nil {
 		return err
@@ -83,6 +86,7 @@ func Save(cwd string, h RalphHistory) error {
 	return os.Rename(tmp, path)
 }
 
+// Clear removes the history file and ignores missing-file errors.
 func Clear(cwd string) error {
 	err := os.Remove(state.HistoryPath(cwd))
 	if errors.Is(err, os.ErrNotExist) {
@@ -91,6 +95,7 @@ func Clear(cwd string) error {
 	return err
 }
 
+// UpdateWithIteration appends r and refreshes struggle indicators.
 func UpdateWithIteration(h *RalphHistory, r IterationRecord) {
 	h.Iterations = append(h.Iterations, r)
 	h.TotalDurationMs += r.DurationMs
@@ -121,6 +126,7 @@ func UpdateWithIteration(h *RalphHistory, r IterationRecord) {
 	}
 }
 
+// TopTools formats the most-used tools as sorted name(count) entries.
 func TopTools(tools map[string]int, max int) string {
 	if len(tools) == 0 {
 		return ""
@@ -149,6 +155,7 @@ func TopTools(tools map[string]int, max int) string {
 	return strings.Join(parts, " ")
 }
 
+// itoa converts an integer to its base-10 string form.
 func itoa(v int) string {
 	if v == 0 {
 		return "0"

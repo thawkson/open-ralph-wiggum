@@ -18,6 +18,7 @@ import (
 
 const version = "1.2.2-go-pre"
 
+// main exits with the status code returned by run.
 func main() {
 	os.Exit(run(os.Args[1:]))
 }
@@ -58,6 +59,7 @@ type cliConfig struct {
 	removeTaskIndex int
 }
 
+// run parses arguments, handles one-shot commands, and starts the loop.
 func run(args []string) int {
 	cfg, err := parseCLIArgs(args)
 	if err != nil {
@@ -175,9 +177,10 @@ func run(args []string) int {
 	return loop.Run(opts)
 }
 
+// parseCLIArgs parses command-line flags and positional prompt arguments.
 func parseCLIArgs(args []string) (cliConfig, error) {
 	cfg := cliConfig{
-		agent:               "opencode",
+		agent:               "copilot",
 		minIterations:       1,
 		maxIterations:       0,
 		completionPromise:   "COMPLETE",
@@ -187,7 +190,7 @@ func parseCLIArgs(args []string) (cliConfig, error) {
 		handleQuestions:     true,
 		disablePlugins:      false,
 		autoCommit:          true,
-		allowAllPermissions: true,
+		allowAllPermissions: false,
 		configPath:          agent.DefaultConfigPath(),
 	}
 
@@ -357,6 +360,7 @@ func parseCLIArgs(args []string) (cliConfig, error) {
 	return cfg, nil
 }
 
+// parseRotationInput parses and validates rotation entries in agent:model form.
 func parseRotationInput(raw string, agents map[string]agent.Definition) ([]string, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
@@ -383,6 +387,7 @@ func parseRotationInput(raw string, agents map[string]agent.Definition) ([]strin
 	return parsed, nil
 }
 
+// agentKeys returns the available agent keys from agents.
 func agentKeys(agents map[string]agent.Definition) []string {
 	keys := make([]string, 0, len(agents))
 	for key := range agents {
@@ -391,6 +396,7 @@ func agentKeys(agents map[string]agent.Definition) []string {
 	return keys
 }
 
+// printHelp writes CLI usage and option help text.
 func printHelp() {
 	fmt.Print(`Ralph Wiggum Loop - Go rewrite
 
@@ -399,7 +405,7 @@ Usage:
   ralph --prompt-file <path> [options]
 
 Options:
-  --agent AGENT                AI agent: opencode (default), claude-code, codex, copilot
+  --agent AGENT                AI agent: opencode, claude-code, codex, copilot (default)
   --model MODEL                Model name for selected agent
   --min-iterations N           Minimum iterations before completion (default: 1)
   --max-iterations N           Maximum iterations (default: unlimited)
@@ -418,8 +424,8 @@ Options:
 	--no-questions               Disable interactive question handling
 	--no-plugins                 Disable non-auth OpenCode plugins for this run
 	--no-commit                  Disable auto-commit after iterations
-	--allow-all                  Auto-approve tool permissions (default)
-	--no-allow-all               Disable auto-approval of permissions
+	--allow-all                  Auto-approve tool permissions
+	--no-allow-all               Disable auto-approval of permissions (default)
 	--add-context TEXT           Add context for next iteration
 	--clear-context              Clear pending context
 	--list-tasks                 Show tasks with indices
@@ -439,6 +445,7 @@ type task struct {
 	originalLine string
 }
 
+// printStatus prints loop state, optional tasks, and recent history summary.
 func printStatus(showTasks bool) int {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -540,6 +547,7 @@ func printStatus(showTasks bool) int {
 	return 0
 }
 
+// formatDurationLong formats a millisecond duration into a readable string.
 func formatDurationLong(ms int64) string {
 	totalSeconds := ms / 1000
 	hours := totalSeconds / 3600
@@ -554,6 +562,7 @@ func formatDurationLong(ms int64) string {
 	return fmt.Sprintf("%ds", seconds)
 }
 
+// addContext appends context text for the next loop iteration.
 func addContext(text string) int {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -585,6 +594,7 @@ func addContext(text string) int {
 	return 0
 }
 
+// clearContext removes any pending context file.
 func clearContext() int {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -601,6 +611,7 @@ func clearContext() int {
 	return 0
 }
 
+// addTask appends a new top-level task to the tasks file.
 func addTask(description string) int {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -629,6 +640,7 @@ func addTask(description string) int {
 	return 0
 }
 
+// listTasks prints the current task list from disk.
 func listTasks() int {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -638,6 +650,7 @@ func listTasks() int {
 	return printTasksFromFile(cwd)
 }
 
+// removeTask removes a top-level task and its indented subtasks by index.
 func removeTask(taskIndex int) int {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -692,6 +705,7 @@ func removeTask(taskIndex int) int {
 	return 0
 }
 
+// parseTasks parses markdown checklist content into top-level tasks and subtasks.
 func parseTasks(content string) []task {
 	tasks := []task{}
 	lines := strings.Split(content, "\n")
@@ -717,6 +731,7 @@ func parseTasks(content string) []task {
 	return tasks
 }
 
+// statusFromMarker maps a markdown task marker to an internal status label.
 func statusFromMarker(marker string) string {
 	switch strings.ToLower(marker) {
 	case "x":
@@ -728,6 +743,7 @@ func statusFromMarker(marker string) string {
 	}
 }
 
+// printTasksFromFile prints progress and task details from the tasks file.
 func printTasksFromFile(cwd string) int {
 	path := state.TasksPath(cwd)
 	payload, err := os.ReadFile(path)
@@ -780,6 +796,7 @@ func printTasksFromFile(cwd string) int {
 	return 0
 }
 
+// topRepeatedErrorPreview returns the top repeated errors as printable previews.
 func topRepeatedErrorPreview(repeated map[string]int, max int) []string {
 	if len(repeated) == 0 || max <= 0 {
 		return []string{}

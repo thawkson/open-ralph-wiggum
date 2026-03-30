@@ -54,6 +54,7 @@ type AgentSpec struct {
 	Args    []string
 }
 
+// resolveAgentSpec builds the CLI command and arguments for an agent run.
 func resolveAgentSpec(def agent.Definition, prompt, model string, extraFlags []string, allowAllPermissions bool, streamOutput bool) (*AgentSpec, error) {
 	if def.Type == "mock" {
 		return &AgentSpec{Command: "sh", Args: []string{"-c", prompt}}, nil
@@ -128,6 +129,7 @@ func resolveAgentSpec(def agent.Definition, prompt, model string, extraFlags []s
 	return &AgentSpec{Command: def.Command, Args: args}, nil
 }
 
+// validateAgent checks that the resolved agent command exists in PATH.
 func validateAgent(def agent.Definition) error {
 	spec, err := resolveAgentSpec(def, "noop", "", nil, false, false)
 	if err != nil {
@@ -144,6 +146,7 @@ func validateAgent(def agent.Definition) error {
 	return nil
 }
 
+// Run executes the iterative loop until completion, abort, or interruption.
 func Run(opts Options) int {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -628,6 +631,7 @@ type pendingQuestion struct {
 	Timestamp string `json:"timestamp"`
 }
 
+// loadPendingQuestions loads queued user answers from disk.
 func loadPendingQuestions(cwd string) ([]pendingQuestion, error) {
 	path := state.QuestionsPath(cwd)
 	payload, err := os.ReadFile(path)
@@ -644,6 +648,7 @@ func loadPendingQuestions(cwd string) ([]pendingQuestion, error) {
 	return questions, nil
 }
 
+// savePendingQuestion appends a user answer to the pending question queue.
 func savePendingQuestion(cwd string, question string) error {
 	questions, err := loadPendingQuestions(cwd)
 	if err != nil {
@@ -660,6 +665,7 @@ func savePendingQuestion(cwd string, question string) error {
 	return os.WriteFile(state.QuestionsPath(cwd), payload, 0o644)
 }
 
+// getAndClearPendingQuestion pops and returns the oldest queued answer.
 func getAndClearPendingQuestion(cwd string) (string, error) {
 	questions, err := loadPendingQuestions(cwd)
 	if err != nil {
@@ -686,6 +692,7 @@ func getAndClearPendingQuestion(cwd string) (string, error) {
 	return first, nil
 }
 
+// clearPendingQuestions removes the pending question queue file.
 func clearPendingQuestions(cwd string) error {
 	err := os.Remove(state.QuestionsPath(cwd))
 	if errors.Is(err, os.ErrNotExist) {
@@ -694,6 +701,7 @@ func clearPendingQuestions(cwd string) error {
 	return err
 }
 
+// appendContext appends an entry to the loop context file, creating it if needed.
 func appendContext(cwd string, entry string) error {
 	if err := state.EnsureDir(cwd); err != nil {
 		return err
@@ -711,6 +719,7 @@ func appendContext(cwd string, entry string) error {
 	return os.WriteFile(path, []byte(merged), 0o644)
 }
 
+// loadContext returns trimmed context text, or an empty string when missing.
 func loadContext(cwd string) string {
 	payload, err := os.ReadFile(state.ContextPath(cwd))
 	if err != nil {
@@ -719,6 +728,7 @@ func loadContext(cwd string) string {
 	return strings.TrimSpace(string(payload))
 }
 
+// clearContext removes the persisted context file.
 func clearContext(cwd string) error {
 	err := os.Remove(state.ContextPath(cwd))
 	if errors.Is(err, os.ErrNotExist) {
@@ -727,6 +737,7 @@ func clearContext(cwd string) error {
 	return err
 }
 
+// detectQuestionTool returns a detected question prompt from tool output.
 func detectQuestionTool(output string, parsePattern string) string {
 	lines := strings.Split(output, "\n")
 	questionRegex := regexp.MustCompile(`(?i)(?:question|asking|please confirm|do you want|should i|can i)\s*[:\-]?\s*(.+)`)
@@ -742,6 +753,7 @@ func detectQuestionTool(output string, parsePattern string) string {
 	return ""
 }
 
+// promptUser asks for console input and returns the trimmed answer.
 func promptUser(question string) (string, error) {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Printf("\nQuestion: %s\nYour answer: ", question)
@@ -752,6 +764,7 @@ func promptUser(question string) (string, error) {
 	return strings.TrimSpace(answer), nil
 }
 
+// collectToolSummaryFromText counts detected tool names in text output.
 func collectToolSummaryFromText(text string, parsePattern string) map[string]int {
 	counts := map[string]int{}
 	if strings.TrimSpace(text) == "" {
@@ -766,10 +779,12 @@ func collectToolSummaryFromText(text string, parsePattern string) map[string]int
 	return counts
 }
 
+// parseToolFromLine parses a tool name with the default parser rules.
 func parseToolFromLine(line string) string {
 	return parseToolFromLineWithPattern(line, "default")
 }
 
+// parseToolFromLineWithPattern parses a tool name using parsePattern rules.
 func parseToolFromLineWithPattern(line, parsePattern string) string {
 	trimmed := strings.TrimSpace(line)
 	if trimmed == "" {
@@ -812,10 +827,12 @@ func parseToolFromLineWithPattern(line, parsePattern string) string {
 	return ""
 }
 
+// detectPlaceholderPluginError checks for the legacy placeholder plugin error.
 func detectPlaceholderPluginError(output string) bool {
 	return strings.Contains(output, "ralph-wiggum is not yet ready for use. This is a placeholder package.")
 }
 
+// detectModelNotFoundError checks for model resolution failures in output.
 func detectModelNotFoundError(output string) bool {
 	return strings.Contains(output, "ProviderModelNotFoundError") ||
 		strings.Contains(output, "Provider returned error") ||
@@ -823,6 +840,7 @@ func detectModelNotFoundError(output string) bool {
 		strings.Contains(output, "No model configured")
 }
 
+// extractErrors extracts unique error-like lines for history tracking.
 func extractErrors(output string) []string {
 	results := []string{}
 	seen := map[string]bool{}
@@ -848,6 +866,7 @@ func extractErrors(output string) []string {
 	return results
 }
 
+// exitCodeFromError returns an exit code when err wraps an ExitError.
 func exitCodeFromError(err error) int {
 	if err == nil {
 		return 0
@@ -863,6 +882,7 @@ type fileSnapshot struct {
 	files map[string]string
 }
 
+// captureFileSnapshot records hashes for tracked and changed files.
 func captureFileSnapshot(cwd string) fileSnapshot {
 	files := map[string]string{}
 	tracked, trackedErr := gitLines(cwd, "ls-files")
@@ -890,6 +910,7 @@ func captureFileSnapshot(cwd string) fileSnapshot {
 	return fileSnapshot{files: files}
 }
 
+// getModifiedFilesSinceSnapshot returns files changed between two snapshots.
 func getModifiedFilesSinceSnapshot(before, after fileSnapshot) []string {
 	changed := []string{}
 	for file, hash := range after.files {
@@ -906,6 +927,7 @@ func getModifiedFilesSinceSnapshot(before, after fileSnapshot) []string {
 	return changed
 }
 
+// gitLines executes git and returns trimmed non-empty output lines.
 func gitLines(cwd string, args ...string) ([]string, error) {
 	cmd := exec.Command("git", args...)
 	cmd.Dir = cwd
@@ -923,6 +945,7 @@ func gitLines(cwd string, args ...string) ([]string, error) {
 	return results, nil
 }
 
+// parseStatusPath extracts a path from a git porcelain status line.
 func parseStatusPath(line string) string {
 	if len(line) < 4 {
 		return ""
@@ -938,6 +961,7 @@ func parseStatusPath(line string) string {
 	return path
 }
 
+// hashFile computes a SHA-1 digest for the file at path.
 func hashFile(path string) (string, error) {
 	payload, err := os.ReadFile(path)
 	if err != nil {
@@ -947,6 +971,7 @@ func hashFile(path string) (string, error) {
 	return fmt.Sprintf("%x", sum), nil
 }
 
+// buildAgentEnv builds the environment used to launch the agent process.
 func buildAgentEnv(cwd string, def agent.Definition, opts Options) ([]string, error) {
 	values := map[string]string{}
 	for _, entry := range os.Environ() {
@@ -978,6 +1003,7 @@ func buildAgentEnv(cwd string, def agent.Definition, opts Options) ([]string, er
 	return result, nil
 }
 
+// ensureRalphConfig writes a run-scoped OpenCode config and returns its path.
 func ensureRalphConfig(cwd string, filterPlugins bool, allowAllPermissions bool) (string, error) {
 	if err := state.EnsureDir(cwd); err != nil {
 		return "", err
@@ -1046,6 +1072,7 @@ func ensureRalphConfig(cwd string, filterPlugins bool, allowAllPermissions bool)
 	return configPath, nil
 }
 
+// loadPluginsFromConfig reads plugin values from a config file.
 func loadPluginsFromConfig(path string) []string {
 	payload, err := os.ReadFile(path)
 	if err != nil {
@@ -1077,6 +1104,7 @@ func loadPluginsFromConfig(path string) []string {
 	return plugins
 }
 
+// printPluginWarnings prints warnings related to plugin-filter behavior.
 func printPluginWarnings(st *state.RalphState, opts Options) {
 	if !opts.DisablePlugins {
 		return
@@ -1119,6 +1147,7 @@ type toolSummaryState struct {
 	summaryInterval time.Duration
 }
 
+// record increments the count for tool and prints periodic summaries.
 func (s *toolSummaryState) record(tool string) {
 	if s == nil || tool == "" {
 		return
@@ -1133,6 +1162,7 @@ func (s *toolSummaryState) record(tool string) {
 	}
 }
 
+// flush prints a tool summary when due or when force is true.
 func (s *toolSummaryState) flush(force bool) {
 	if s == nil {
 		return
@@ -1149,6 +1179,7 @@ func (s *toolSummaryState) flush(force bool) {
 	}
 }
 
+// snapshot returns a copy of the current tool counters.
 func (s *toolSummaryState) snapshot() map[string]int {
 	if s == nil {
 		return map[string]int{}
@@ -1162,6 +1193,7 @@ func (s *toolSummaryState) snapshot() map[string]int {
 	return copyMap
 }
 
+// mergeToolCounts merges two tool-count maps, keeping the higher count per tool.
 func mergeToolCounts(a, b map[string]int) map[string]int {
 	merged := map[string]int{}
 	for key, value := range a {
@@ -1175,6 +1207,7 @@ func mergeToolCounts(a, b map[string]int) map[string]int {
 	return merged
 }
 
+// formatToolSummary renders tool counts as sorted name(count) pairs.
 func formatToolSummary(counts map[string]int) string {
 	if len(counts) == 0 {
 		return ""
@@ -1200,6 +1233,7 @@ func formatToolSummary(counts map[string]int) string {
 	return strings.Join(parts, " ")
 }
 
+// printIterationSummary prints a human-readable summary of one iteration.
 func printIterationSummary(iteration int, elapsedMs int64, agentName, model string, toolCounts map[string]int, exitCode int, completionDetected bool) {
 	duration := formatDuration(time.Duration(elapsedMs) * time.Millisecond)
 	fmt.Printf("Iteration %d completed in %s (%s / %s)\n", iteration, duration, agentName, model)
@@ -1220,6 +1254,7 @@ func printIterationSummary(iteration int, elapsedMs int64, agentName, model stri
 	}
 }
 
+// tryAutoCommit stages all changes and creates an iteration commit when needed.
 func tryAutoCommit(cwd string, iteration int) error {
 	statusCmd := exec.Command("git", "status", "--porcelain")
 	statusCmd.Dir = cwd
@@ -1240,6 +1275,7 @@ func tryAutoCommit(cwd string, iteration int) error {
 	return commitCmd.Run()
 }
 
+// ensureTasksFile ensures the tasks file exists and seeds it if missing.
 func ensureTasksFile(cwd string) (string, bool, error) {
 	if err := state.EnsureDir(cwd); err != nil {
 		return "", false, err
@@ -1264,6 +1300,7 @@ type loopTask struct {
 	subtasks []loopTask
 }
 
+// parseLoopTasks parses markdown tasks into loopTask structures.
 func parseLoopTasks(content string) []loopTask {
 	mainPat := regexp.MustCompile(`^- \[([ xX/])\]\s*(.+)$`)
 	subPat := regexp.MustCompile(`^\s+- \[([ xX/])\]\s*(.+)$`)
@@ -1287,6 +1324,7 @@ func parseLoopTasks(content string) []loopTask {
 	return tasks
 }
 
+// taskStatus converts a markdown marker to an internal task status.
 func taskStatus(marker string) string {
 	switch strings.ToLower(marker) {
 	case "x":
@@ -1298,6 +1336,7 @@ func taskStatus(marker string) string {
 	}
 }
 
+// findCurrentTask returns the first task marked in-progress.
 func findCurrentTask(tasks []loopTask) *loopTask {
 	for i := range tasks {
 		if tasks[i].status == "in-progress" {
@@ -1307,6 +1346,7 @@ func findCurrentTask(tasks []loopTask) *loopTask {
 	return nil
 }
 
+// findNextTask returns the first task marked todo.
 func findNextTask(tasks []loopTask) *loopTask {
 	for i := range tasks {
 		if tasks[i].status == "todo" {
@@ -1316,6 +1356,7 @@ func findNextTask(tasks []loopTask) *loopTask {
 	return nil
 }
 
+// allTasksComplete reports whether all tasks and subtasks are complete.
 func allTasksComplete(tasks []loopTask) bool {
 	if len(tasks) == 0 {
 		return false
@@ -1333,6 +1374,7 @@ func allTasksComplete(tasks []loopTask) bool {
 	return true
 }
 
+// getTasksModeSection builds the tasks-mode prompt section from tasks state.
 func getTasksModeSection(cwd string, st *state.RalphState) string {
 	tasksPayload, err := os.ReadFile(state.TasksPath(cwd))
 	if err != nil {
@@ -1386,6 +1428,7 @@ Current tasks from .ralph/ralph-tasks.md:
 `, "```markdown\n", strings.TrimSpace(tasksContent), "\n```", taskInstructions, st.TaskPromise, st.CompletionPromise)
 }
 
+// buildLoopPrompt builds the per-iteration prompt for normal or tasks mode.
 func buildLoopPrompt(cwd string, st *state.RalphState) string {
 	context := ""
 	if contextPayload, err := os.ReadFile(state.ContextPath(cwd)); err == nil {
@@ -1469,6 +1512,7 @@ Now, work on the task. Good luck!`,
 		st.CompletionPromise, st.CompletionPromise, iterDisplay, minDisplay))
 }
 
+// selectedAgentModel returns the active agent/model and rotation index.
 func selectedAgentModel(st *state.RalphState) (string, string, int, error) {
 	if len(st.Rotation) == 0 {
 		return st.Agent, st.Model, 0, nil
@@ -1485,6 +1529,7 @@ func selectedAgentModel(st *state.RalphState) (string, string, int, error) {
 	return agentName, model, idx, nil
 }
 
+// parseRotationEntry parses a single rotation entry in agent:model form.
 func parseRotationEntry(entry string) (string, string, error) {
 	parts := strings.Split(entry, ":")
 	if len(parts) != 2 {
@@ -1498,6 +1543,7 @@ func parseRotationEntry(entry string) (string, string, error) {
 	return agentName, model, nil
 }
 
+// renderPromptTemplate loads and renders a prompt template with runtime values.
 func renderPromptTemplate(cwd string, st *state.RalphState) (string, error) {
 	path := strings.TrimSpace(st.PromptTemplate)
 	if path == "" {
@@ -1536,6 +1582,7 @@ func renderPromptTemplate(cwd string, st *state.RalphState) (string, error) {
 	return content, nil
 }
 
+// maxIterationsDisplay formats max iterations for template rendering.
 func maxIterationsDisplay(max int) string {
 	if max > 0 {
 		return fmt.Sprintf("%d", max)
@@ -1618,6 +1665,7 @@ func extractClaudeStreamDisplayLines(rawLine string) []string {
 	return lines
 }
 
+// streamPipe forwards stream output, captures text, and tracks tool usage.
 func streamPipe(reader io.Reader, writer io.Writer, capture *bytes.Buffer, stream bool, verboseTools bool, parsePattern string, activity *atomic.Int64, tools *toolSummaryState, wg *sync.WaitGroup) {
 	defer wg.Done()
 	isClaudeStream := strings.EqualFold(strings.TrimSpace(parsePattern), "claude-code")
@@ -1681,6 +1729,7 @@ func streamPipe(reader io.Reader, writer io.Writer, capture *bytes.Buffer, strea
 	}
 }
 
+// heartbeatLoop prints elapsed progress until done is closed.
 func heartbeatLoop(iterationStart time.Time, activity *atomic.Int64, done <-chan struct{}, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -1696,6 +1745,7 @@ func heartbeatLoop(iterationStart time.Time, activity *atomic.Int64, done <-chan
 	}
 }
 
+// formatDuration formats a duration as mm:ss or hh:mm:ss.
 func formatDuration(d time.Duration) string {
 	seconds := int(d.Seconds())
 	if seconds < 0 {
@@ -1710,6 +1760,7 @@ func formatDuration(d time.Duration) string {
 	return fmt.Sprintf("%d:%02d", minutes, secs)
 }
 
+// oneLinePreview collapses whitespace and truncates to max characters.
 func oneLinePreview(s string, max int) string {
 	trimmed := strings.Join(strings.Fields(s), " ")
 	if len(trimmed) <= max {

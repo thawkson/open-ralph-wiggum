@@ -26,34 +26,42 @@ type RalphState struct {
 	RotationIndex     *int     `json:"rotationIndex,omitempty"`
 }
 
+// RalphDir returns the workspace-local directory used for Ralph state files.
 func RalphDir(cwd string) string {
 	return filepath.Join(cwd, ".ralph")
 }
 
+// LoopStatePath returns the path to the persisted loop state file.
 func LoopStatePath(cwd string) string {
 	return filepath.Join(RalphDir(cwd), "ralph-loop.state.json")
 }
 
+// ContextPath returns the path to the pending context markdown file.
 func ContextPath(cwd string) string {
 	return filepath.Join(RalphDir(cwd), "ralph-context.md")
 }
 
+// TasksPath returns the path to the tasks markdown file.
 func TasksPath(cwd string) string {
 	return filepath.Join(RalphDir(cwd), "ralph-tasks.md")
 }
 
+// QuestionsPath returns the path to the queued question-answer file.
 func QuestionsPath(cwd string) string {
 	return filepath.Join(RalphDir(cwd), "ralph-questions.json")
 }
 
+// HistoryPath returns the path to the loop iteration history file.
 func HistoryPath(cwd string) string {
 	return filepath.Join(RalphDir(cwd), "ralph-history.json")
 }
 
+// EnsureDir creates the Ralph state directory when needed.
 func EnsureDir(cwd string) error {
 	return os.MkdirAll(RalphDir(cwd), 0o755)
 }
 
+// SaveLoopState writes the loop state atomically to disk.
 func SaveLoopState(cwd string, st RalphState) error {
 	if err := EnsureDir(cwd); err != nil {
 		return err
@@ -71,6 +79,7 @@ func SaveLoopState(cwd string, st RalphState) error {
 	return os.Rename(tmp, path)
 }
 
+// LoadLoopState loads the current loop state or nil if no state exists.
 func LoadLoopState(cwd string) (*RalphState, error) {
 	path := LoopStatePath(cwd)
 	payload, err := os.ReadFile(path)
@@ -88,6 +97,7 @@ func LoadLoopState(cwd string) (*RalphState, error) {
 	return &st, nil
 }
 
+// ClearLoopState removes the persisted loop state file if present.
 func ClearLoopState(cwd string) error {
 	path := LoopStatePath(cwd)
 	err := os.Remove(path)
@@ -97,6 +107,7 @@ func ClearLoopState(cwd string) error {
 	return err
 }
 
+// NewState builds an initial active loop state for a new run.
 func NewState(prompt, completionPromise, abortPromise, model, agent string, minIterations, maxIterations int) RalphState {
 	return RalphState{
 		Active:            true,

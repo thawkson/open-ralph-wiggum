@@ -34,6 +34,7 @@ type Definition struct {
 	ParsePattern string
 }
 
+// DefaultConfigPath returns the default path to the agent config file.
 func DefaultConfigPath() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -42,6 +43,7 @@ func DefaultConfigPath() string {
 	return filepath.Join(home, ".config", "open-ralph-wiggum", "agents.json")
 }
 
+// DefaultConfig returns the built-in agent configuration template.
 func DefaultConfig() FileConfig {
 	return FileConfig{
 		Version: "1.0",
@@ -54,6 +56,7 @@ func DefaultConfig() FileConfig {
 	}
 }
 
+// WriteDefaultConfig writes the default agent config to path.
 func WriteDefaultConfig(path string) error {
 	if strings.TrimSpace(path) == "" {
 		path = DefaultConfigPath()
@@ -71,6 +74,7 @@ func WriteDefaultConfig(path string) error {
 	return os.WriteFile(path, payload, 0o644)
 }
 
+// LoadMerged loads file-based config and overlays it on built-in definitions.
 func LoadMerged(configPath string) (map[string]Definition, error) {
 	defs := defaultDefinitions()
 	path := strings.TrimSpace(configPath)
@@ -115,11 +119,13 @@ func LoadMerged(configPath string) (map[string]Definition, error) {
 	return defs, nil
 }
 
+// envOverride returns the binary override environment value for agentType.
 func envOverride(agentType string) string {
 	key := "RALPH_" + strings.ToUpper(strings.ReplaceAll(agentType, "-", "_")) + "_BINARY"
 	return os.Getenv(key)
 }
 
+// defaultDefinitions returns the built-in set of known agent definitions.
 func defaultDefinitions() map[string]Definition {
 	defs := map[string]Definition{
 		"opencode": {
@@ -166,6 +172,7 @@ func defaultDefinitions() map[string]Definition {
 	return defs
 }
 
+// resolveCommand picks envOverride when set and normalizes Windows CLI lookup.
 func resolveCommand(command string, envOverride string) string {
 	if strings.TrimSpace(envOverride) != "" {
 		return strings.TrimSpace(envOverride)
@@ -182,6 +189,7 @@ func resolveCommand(command string, envOverride string) string {
 	return command
 }
 
+// firstNonEmpty returns the first non-blank string in values.
 func firstNonEmpty(values ...string) string {
 	for _, value := range values {
 		if strings.TrimSpace(value) != "" {
