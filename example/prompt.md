@@ -1,25 +1,15 @@
 Our goal is to plan a functional To-Do list web application.
 
-You must collaborate with me before finalizing planning artifacts.
-
-Collaboration protocol (mandatory):
-1. If you need clarification, ask exactly one question using this exact line format:
-Tool: question: <your question>
-2. After asking that one question, stop and wait for my response.
-3. Do not continue implementation planning until I answer.
-4. Do not ask plain-English questions without the Tool: question: prefix.
-
+Phase 1:
 Planning objectives:
 1. Produce an MVP Product Requirements Document in PRD.md.
 2. Produce an atomic, actionable task plan in TASKLIST.md.
-3. Work back-and-forth with me on open questions and outline before writing PRD.md.
-4. Work back-and-forth with me on each task before finalizing TASKLIST.md.
-5. use answer ledger to ensure duplicate questions are not asked, and reference that ledger if it exists before asking a question.
 
 MVP requirements to include:
 1. CRUD scope for tasks:
 - add task
 - check task
+- update task
 - delete task
 2. Input validation rules for all endpoints.
 3. UI uses Bootstrap.
@@ -49,14 +39,25 @@ MVP requirements to include:
 Execution sequence:
 1. Start by asking open questions (one Tool: question per turn).
 2. After I answer, present a concise outline for approval.
-3. Draft PRD.md.
-4. Ask for PRD approval.
-5. Draft TASKLIST.md with atomic tasks.
-6. Ask for TASKLIST approval.
+3. CreatePRD.md.
+4. Create TASKLIST.md with atomic tasks.
 
-Acceptance criteria:
-1. PRD.md has been created.
-2. TASKLIST.md has been created.
 
-Completion rule:
-Output <promise>COMPLETE</promise> only when both acceptance criteria are met and both files exist.
+Phase 2: Building (Iterate on this)
+1. Read the TASKLIST.md.
+2. leverage Test driven development for each task using pytest
+3. Select the next incomplete task.
+4. Implement the task.
+5. Run tests and linting to ensure it works
+6. Update TASKLIST.md to make the task as done.
+7. Commit changes to git.
+
+Acceptance Criteria:
+- All tasks in TASKLIST.md are marked as done.
+- The app has no lint errors
+- The app passes all tests.
+- build and run the application and ensure end to end tests work with locust testing tool.
+- Generate README.md on how a new contributor can do additional development and how someone can run this app.
+
+## Completion Promise
+Output <promise>COMPLETE</promise> only when all acceptance criteria are met.

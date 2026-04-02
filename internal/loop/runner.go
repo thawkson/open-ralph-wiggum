@@ -106,8 +106,9 @@ func resolveAgentSpec(def agent.Definition, prompt, model string, extraFlags []s
 		if model != "" {
 			args = append(args, "--model", model)
 		}
+		args = append(args, "--no-ask-user")
 		if allowAllPermissions {
-			args = append(args, "--allow-all", "--no-ask-user")
+			args = append(args, "--allow-all")
 		}
 		if len(extraFlags) > 0 {
 			args = append(args, extraFlags...)
@@ -231,6 +232,7 @@ func Run(opts Options) int {
 	}
 
 	if loadedState == nil || !loadedState.Active {
+		_ = clearPendingApprovals(cwd)
 		created := state.NewState(opts.Prompt, opts.CompletionPromise, opts.AbortPromise, opts.Model, opts.Agent, opts.MinIterations, opts.MaxIterations)
 		created.TasksMode = opts.TasksMode
 		created.TaskPromise = opts.TaskPromise
@@ -246,6 +248,8 @@ func Run(opts Options) int {
 		}
 		loadedState = &created
 	}
+
+	permissionsEscalated := false
 
 	if loadedState.TasksMode {
 		createdPath, created, err := ensureTasksFile(cwd)
@@ -304,6 +308,7 @@ func Run(opts Options) int {
 				}
 				_ = state.ClearLoopState(cwd)
 				_ = clearPendingQuestions(cwd)
+				_ = clearPendingApprovals(cwd)
 			} else {
 				fmt.Println("\nForce stopping...")
 				atomic.StoreInt32(&forced, 1)
@@ -312,6 +317,7 @@ func Run(opts Options) int {
 				}
 				_ = state.ClearLoopState(cwd)
 				_ = clearPendingQuestions(cwd)
+				_ = clearPendingApprovals(cwd)
 				os.Exit(1)
 			}
 		}
@@ -322,6 +328,7 @@ func Run(opts Options) int {
 			fmt.Printf("Max iterations (%d) reached.\n", loadedState.MaxIterations)
 			_ = state.ClearLoopState(cwd)
 			_ = clearPendingQuestions(cwd)
+			_ = clearPendingApprovals(cwd)
 			return 0
 		}
 		if ctx.Err() != nil {
@@ -362,7 +369,16 @@ func Run(opts Options) int {
 			fullPrompt = rendered
 		}
 
-		spec, err := resolveAgentSpec(def, fullPrompt, currentModel, opts.ExtraAgentFlags, opts.AllowAllPermissions, opts.StreamOutput)
+		effectiveAllowAll := opts.AllowAllPermissions
+		if !effectiveAllowAll && hasApprovedMutatingPermission(cwd) {
+			effectiveAllowAll = true
+			if !permissionsEscalated {
+				fmt.Println("Permissions: Ralph gate approved mutating tools for this run")
+				permissionsEscalated = true
+			}
+		}
+
+		spec, err := resolveAgentSpec(def, fullPrompt, currentModel, opts.ExtraAgentFlags, effectiveAllowAll, opts.StreamOutput)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error:", err)
 			_ = state.ClearLoopState(cwd)
@@ -371,7 +387,9 @@ func Run(opts Options) int {
 
 		iterCtx, iterCancel := context.WithCancel(ctx)
 		cmd := exec.CommandContext(iterCtx, spec.Command, spec.Args...)
-		envVars, envErr := buildAgentEnv(cwd, def, opts)
+		runtimeOpts := opts
+		runtimeOpts.AllowAllPermissions = effectiveAllowAll
+		envVars, envErr := buildAgentEnv(cwd, def, runtimeOpts)
 		if envErr != nil {
 			iterCancel()
 			fmt.Fprintln(os.Stderr, "Error preparing runtime environment:", envErr)
@@ -539,6 +557,7 @@ func Run(opts Options) int {
 			_ = state.ClearLoopState(cwd)
 			_ = history.Clear(cwd)
 			_ = clearPendingQuestions(cwd)
+			_ = clearPendingApprovals(cwd)
 			return 1
 		}
 
@@ -553,7 +572,43 @@ func Run(opts Options) int {
 			_ = state.ClearLoopState(cwd)
 			_ = history.Clear(cwd)
 			_ = clearPendingQuestions(cwd)
+			_ = clearPendingApprovals(cwd)
 			return 1
+		}
+
+		if !opts.AllowAllPermissions {
+			for _, toolName := range detectMutatingToolRequests(output, def.ParsePattern) {
+				if isMutatingToolApproved(cwd, toolName) {
+					continue
+				}
+
+				approved, promptErr := promptForToolApproval(toolName)
+				if promptErr != nil {
+					fmt.Fprintln(os.Stderr, "Permission gate error:", promptErr)
+					fmt.Fprintln(os.Stderr, "Hint: rerun with --allow-all, or use an interactive terminal with --no-allow-all.")
+					_ = state.ClearLoopState(cwd)
+					_ = history.Clear(cwd)
+					_ = clearPendingQuestions(cwd)
+					_ = clearPendingApprovals(cwd)
+					return 1
+				}
+
+				_ = savePendingApproval(cwd, toolName, approved)
+				decision := "DENIED"
+				if approved {
+					decision = "APPROVED"
+				}
+				_ = appendContext(cwd, fmt.Sprintf("## Permission Decision\nTool: %s\nDecision: %s\n", toolName, decision))
+
+				if !approved {
+					fmt.Fprintf(os.Stderr, "Permission denied for mutating tool '%s'. Stopping current run.\n", toolName)
+					_ = state.ClearLoopState(cwd)
+					_ = history.Clear(cwd)
+					_ = clearPendingQuestions(cwd)
+					_ = clearPendingApprovals(cwd)
+					return 1
+				}
+			}
 		}
 
 		if opts.HandleQuestions {
@@ -574,6 +629,7 @@ func Run(opts Options) int {
 			_ = history.Clear(cwd)
 			_ = clearContext(cwd)
 			_ = clearPendingQuestions(cwd)
+			_ = clearPendingApprovals(cwd)
 			return 1
 		}
 
@@ -587,6 +643,7 @@ func Run(opts Options) int {
 			_ = history.Clear(cwd)
 			_ = clearContext(cwd)
 			_ = clearPendingQuestions(cwd)
+			_ = clearPendingApprovals(cwd)
 			return 0
 		}
 
@@ -629,6 +686,178 @@ func Run(opts Options) int {
 type pendingQuestion struct {
 	Question  string `json:"question"`
 	Timestamp string `json:"timestamp"`
+}
+
+type pendingApproval struct {
+	Tool      string `json:"tool"`
+	Approved  bool   `json:"approved"`
+	Timestamp string `json:"timestamp"`
+}
+
+var mutatingToolNames = map[string]struct{}{
+	"apply_patch":                     {},
+	"bash":                            {},
+	"create_and_run_task":             {},
+	"create_file":                     {},
+	"delete_file":                     {},
+	"edit":                            {},
+	"edit_file":                       {},
+	"mcp_gitkraken_git_add_or_commit": {},
+	"mcp_gitkraken_git_push":          {},
+	"mcp_gitkraken_git_stash":         {},
+	"rename":                          {},
+	"rename_file":                     {},
+	"run_in_terminal":                 {},
+	"shell":                           {},
+	"vscode_renamesymbol":             {},
+	"write":                           {},
+	"write_file":                      {},
+}
+
+var shellStyleActionPattern = regexp.MustCompile(`(?i)\((shell|bash)\)\s*$`)
+var structuredTableToolPattern = regexp.MustCompile(`^\|\s{2}[A-Za-z0-9_-]+`)
+
+func isMutatingTool(toolName string) bool {
+	toolName = strings.ToLower(strings.TrimSpace(toolName))
+	_, ok := mutatingToolNames[toolName]
+	return ok
+}
+
+func detectMutatingToolRequests(output string, parsePattern string) []string {
+	seen := map[string]struct{}{}
+	for _, line := range strings.Split(output, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			continue
+		}
+
+		if match := shellStyleActionPattern.FindStringSubmatch(trimmed); len(match) == 2 {
+			candidate := strings.ToLower(strings.TrimSpace(match[1]))
+			if isMutatingTool(candidate) {
+				seen[candidate] = struct{}{}
+			}
+		}
+
+		parsed := strings.ToLower(strings.TrimSpace(parseToolFromLineWithPattern(trimmed, parsePattern)))
+		if parsed == "" || !isMutatingTool(parsed) {
+			continue
+		}
+
+		lower := strings.ToLower(trimmed)
+		if strings.HasPrefix(lower, "tool:") || strings.HasPrefix(trimmed, "{") || structuredTableToolPattern.MatchString(trimmed) {
+			seen[parsed] = struct{}{}
+		}
+	}
+
+	tools := make([]string, 0, len(seen))
+	for toolName := range seen {
+		tools = append(tools, toolName)
+	}
+	sort.Strings(tools)
+	return tools
+}
+
+func isInteractiveTerminal() bool {
+	info, err := os.Stdin.Stat()
+	if err != nil {
+		return false
+	}
+	return (info.Mode() & os.ModeCharDevice) != 0
+}
+
+func promptForToolApproval(toolName string) (bool, error) {
+	if !isInteractiveTerminal() {
+		return false, errors.New("interactive permission prompts require a TTY")
+	}
+
+	prompt := fmt.Sprintf("Permission required for mutating tool '%s'.", toolName)
+	answer, err := runSelectionPrompt(prompt, []string{"Approve", "Deny"})
+	if err != nil {
+		return false, err
+	}
+
+	normalized := strings.ToLower(strings.TrimSpace(answer))
+	switch normalized {
+	case "y", "yes", "approve", "approved", "allow":
+		return true, nil
+	case "n", "no", "deny", "denied", "":
+		return false, nil
+	default:
+		fmt.Printf("Invalid response %q. Denying '%s'.\n", normalized, toolName)
+		return false, nil
+	}
+}
+
+func loadPendingApprovals(cwd string) ([]pendingApproval, error) {
+	path := state.ApprovalsPath(cwd)
+	payload, err := os.ReadFile(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return []pendingApproval{}, nil
+		}
+		return nil, err
+	}
+
+	approvals := []pendingApproval{}
+	if err := json.Unmarshal(payload, &approvals); err != nil {
+		return []pendingApproval{}, nil
+	}
+	return approvals, nil
+}
+
+func savePendingApproval(cwd string, toolName string, approved bool) error {
+	approvals, err := loadPendingApprovals(cwd)
+	if err != nil {
+		return err
+	}
+	approvals = append(approvals, pendingApproval{
+		Tool:      strings.ToLower(strings.TrimSpace(toolName)),
+		Approved:  approved,
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+	})
+	if err := state.EnsureDir(cwd); err != nil {
+		return err
+	}
+	payload, err := json.MarshalIndent(approvals, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(state.ApprovalsPath(cwd), payload, 0o644)
+}
+
+func isMutatingToolApproved(cwd string, toolName string) bool {
+	approvals, err := loadPendingApprovals(cwd)
+	if err != nil {
+		return false
+	}
+	normalized := strings.ToLower(strings.TrimSpace(toolName))
+	for i := len(approvals) - 1; i >= 0; i-- {
+		if approvals[i].Tool == normalized {
+			return approvals[i].Approved
+		}
+	}
+	return false
+}
+
+func hasApprovedMutatingPermission(cwd string) bool {
+	approvals, err := loadPendingApprovals(cwd)
+	if err != nil {
+		return false
+	}
+	for _, approval := range approvals {
+		if approval.Approved && isMutatingTool(approval.Tool) {
+			return true
+		}
+	}
+	return false
+}
+
+func clearPendingApprovals(cwd string) error {
+	err := os.Remove(state.ApprovalsPath(cwd))
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return err
 }
 
 // loadPendingQuestions loads queued user answers from disk.
@@ -755,6 +984,11 @@ func detectQuestionTool(output string, parsePattern string) string {
 
 // promptUser asks for console input and returns the trimmed answer.
 func promptUser(question string) (string, error) {
+	if isInteractiveTerminal() {
+		choices := detectQuestionOptions(question)
+		return runSelectionPrompt("Question: "+question, choices)
+	}
+
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Printf("\nQuestion: %s\nYour answer: ", question)
 	answer, err := reader.ReadString('\n')

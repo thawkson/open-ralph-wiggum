@@ -108,6 +108,17 @@ func TestResolveAgentSpecAllowAllAndStreamArgs(t *testing.T) {
 	if !contains(copilot.Args, "--allow-all") || !contains(copilot.Args, "--no-ask-user") {
 		t.Fatalf("expected copilot allow-all args, got %#v", copilot.Args)
 	}
+
+	copilotNoAllow, err := resolveAgentSpec(copilotDef, "prompt", "m", nil, false, false)
+	if err != nil {
+		t.Fatalf("resolveAgentSpec copilot no-allow failed: %v", err)
+	}
+	if !contains(copilotNoAllow.Args, "--no-ask-user") {
+		t.Fatalf("expected copilot no-ask-user arg, got %#v", copilotNoAllow.Args)
+	}
+	if contains(copilotNoAllow.Args, "--allow-all") {
+		t.Fatalf("did not expect copilot --allow-all arg, got %#v", copilotNoAllow.Args)
+	}
 }
 
 // TestEnsureTasksFile verifies task file creation is correct and idempotent.
@@ -189,6 +200,50 @@ func TestPendingQuestionQueue(t *testing.T) {
 	}
 	if q3 != "" {
 		t.Fatalf("expected empty question after queue is drained, got %q", q3)
+	}
+}
+
+// TestPendingApprovalQueue verifies pending approvals are persisted and resolved with latest decision wins.
+func TestPendingApprovalQueue(t *testing.T) {
+	tmp := t.TempDir()
+
+	if err := savePendingApproval(tmp, "shell", false); err != nil {
+		t.Fatalf("savePendingApproval deny failed: %v", err)
+	}
+	if isMutatingToolApproved(tmp, "shell") {
+		t.Fatal("expected denied approval for shell")
+	}
+
+	if err := savePendingApproval(tmp, "shell", true); err != nil {
+		t.Fatalf("savePendingApproval approve failed: %v", err)
+	}
+	if !isMutatingToolApproved(tmp, "shell") {
+		t.Fatal("expected latest shell approval to be true")
+	}
+
+	if !hasApprovedMutatingPermission(tmp) {
+		t.Fatal("expected approved mutating permission to be detected")
+	}
+
+	if err := clearPendingApprovals(tmp); err != nil {
+		t.Fatalf("clearPendingApprovals failed: %v", err)
+	}
+	if hasApprovedMutatingPermission(tmp) {
+		t.Fatal("did not expect approvals after clear")
+	}
+}
+
+// TestDetectMutatingToolRequests verifies mutating tool detection only triggers on structured tool/action lines.
+func TestDetectMutatingToolRequests(t *testing.T) {
+	output := strings.Join([]string{
+		"Tool: apply_patch",
+		"✗ Create PRD.md with MVP requirements (shell)",
+		"I found your prior answers and I am proceeding using those decisions.",
+	}, "\n")
+
+	got := detectMutatingToolRequests(output, "default")
+	if !reflect.DeepEqual(got, []string{"apply_patch", "shell"}) {
+		t.Fatalf("unexpected mutating tools: got=%v", got)
 	}
 }
 

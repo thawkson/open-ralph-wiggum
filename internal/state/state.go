@@ -51,6 +51,11 @@ func QuestionsPath(cwd string) string {
 	return filepath.Join(RalphDir(cwd), "ralph-questions.json")
 }
 
+// ApprovalsPath returns the path to the queued permission-decision file.
+func ApprovalsPath(cwd string) string {
+	return filepath.Join(RalphDir(cwd), "ralph-approvals.json")
+}
+
 // HistoryPath returns the path to the loop iteration history file.
 func HistoryPath(cwd string) string {
 	return filepath.Join(RalphDir(cwd), "ralph-history.json")

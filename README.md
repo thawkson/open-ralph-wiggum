@@ -229,7 +229,7 @@ Options:
   --no-plugins             Disable non-auth OpenCode plugins for this run (opencode only)
   --no-commit              Don't auto-commit after iterations
   --allow-all              Auto-approve all tool permissions (default: on)
-  --no-allow-all           Require interactive permission prompts
+  --no-allow-all           Require Ralph interactive approval for mutating tools
   --config PATH            Use custom agent config file
   --init-config [PATH]     Write default agent config to PATH and exit
   --help                   Show help
@@ -631,6 +631,7 @@ During operation, Ralph stores state in `.ralph/`:
 - `ralph-context.md` - Pending context for next iteration
 - `ralph-tasks.md` - Task list for Tasks Mode (created when `--tasks` is used)
 - `ralph-questions.json` - Pending user answers to agent questions
+- `ralph-approvals.json` - Per-run mutating tool approval decisions
 
 ## Uninstall
 
@@ -800,6 +801,7 @@ The `--status` command shows which agent and model was used for each iteration:
 ## Learn More
 
 - [Original Ralph Wiggum technique by Geoffrey Huntley](https://ghuntley.com/ralph/)
+- [How to Ralph wiggum](https://github.com/ghuntley/how-to-ralph-wiggum)
 - [Ralph Orchestrator](https://github.com/mikeyobrien/ralph-orchestrator)
 
 ## See Also

@@ -425,7 +425,7 @@ Options:
 	--no-plugins                 Disable non-auth OpenCode plugins for this run
 	--no-commit                  Disable auto-commit after iterations
 	--allow-all                  Auto-approve tool permissions
-	--no-allow-all               Disable auto-approval of permissions (default)
+	--no-allow-all               Require Ralph interactive approval for mutating tools (default)
 	--add-context TEXT           Add context for next iteration
 	--clear-context              Clear pending context
 	--list-tasks                 Show tasks with indices
